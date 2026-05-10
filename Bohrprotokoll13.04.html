@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⛏</text></svg>">
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⛏</text></svg>">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+<title>Bohrprotokoll</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@400;600;700;800&display=swap');
+:root {
+  --bg:#0d1117; --panel:#161b22; --border:#21262d;
+  --accent:#f0a500; --orange:#e05c1a; --green:#3ecf8e;
+  --blue:#388bfd; --purple:#bc8cff; --text:#e6edf3; --muted:#7d8590;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Barlow Condensed',sans-serif;}
+
+header{text-align:center;padding:10px 0 8px;border-bottom:2px solid var(--accent);margin-bottom:8px;}
+header h1{font-size:1.4rem;font-weight:800;letter-spacing:3px;color:var(--accent);text-transform:uppercase;}
+.meta-row{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:6px;}
+.meta-item{display:flex;align-items:center;gap:4px;}
+.meta-item span{font-size:0.68rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;white-space:nowrap;}
+.meta-item input{background:transparent;border:none;border-bottom:1px solid var(--border);outline:none;
+  color:var(--text);font-family:'Share Tech Mono',monospace;font-size:0.9rem;
+  text-align:center;padding:1px 4px;width:120px;}
+.meta-item input:focus{border-bottom-color:var(--accent);}
+header p{font-size:0.68rem;color:var(--muted);margin-top:6px;letter-spacing:1px;}
+
+.legend-bar{display:flex;flex-wrap:wrap;gap:4px 12px;padding:4px 10px 6px;border-bottom:1px solid var(--border);margin-bottom:6px;}
+.leg-item{display:flex;align-items:center;gap:4px;font-size:0.65rem;color:var(--muted);}
+.leg-dot{width:12px;height:3px;border-radius:2px;}
+
+.global-bar{display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--border);
+  border-radius:6px;padding:6px 12px;margin:0 8px 8px;}
+.global-bar label{font-size:0.7rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;white-space:nowrap;}
+.global-bar input{background:transparent;border:none;outline:none;color:var(--green);
+  font-family:'Share Tech Mono',monospace;font-size:1.15rem;width:70px;}
+.global-bar .unit{font-size:0.78rem;color:var(--muted);font-family:'Share Tech Mono',monospace;}
+
+/* MP Zeile */
+.mp-row{display:flex;align-items:flex-start;border:1px solid var(--border);border-radius:8px;margin:0 8px 8px;overflow:hidden;background:var(--panel);}
+.mp-fields{width:52%;padding:8px 10px;border-right:1px solid var(--border);flex-shrink:0;}
+.mp-canvas-wrap{width:48%;flex-shrink:0;}
+.mp-canvas-wrap canvas{width:100%;height:auto;display:block;}
+
+.mp-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+.mp-num{font-size:1rem;font-weight:800;color:var(--accent);letter-spacing:1px;}
+.btn-del{background:transparent;border:1px solid #333;border-radius:4px;color:#555;
+  padding:1px 7px;cursor:pointer;font-size:0.8rem;font-family:'Barlow Condensed',sans-serif;}
+.btn-del:hover{border-color:#e05c1a;color:#e05c1a;}
+
+.row{display:flex;gap:5px;margin-bottom:5px;align-items:flex-end;}
+.field{display:flex;flex-direction:column;gap:1px;flex:1;min-width:0;}
+.field label{font-size:0.58rem;color:var(--muted);letter-spacing:0.4px;text-transform:uppercase;
+  cursor:pointer;border-bottom:1px dotted transparent;transition:border-color 0.2s;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.field label:hover{border-bottom-color:var(--muted);}
+.field label[contenteditable="true"]{outline:none;border-bottom-color:var(--accent);color:var(--accent);white-space:normal;}
+.field input{background:#0a0d14;border:1px solid var(--border);border-radius:4px;
+  padding:3px 5px;color:var(--green);font-family:'Share Tech Mono',monospace;
+  font-size:0.95rem;width:100%;outline:none;transition:border-color 0.15s;}
+.field input:focus{border-color:var(--green);}
+.field input.auto{color:#1a7a50;border-color:#0d2a1a;}
+.field input.auto:focus{color:var(--green);border-color:var(--green);}
+.uw{display:flex;align-items:center;gap:2px;}
+.unit{font-size:0.7rem;color:var(--muted);font-family:'Share Tech Mono',monospace;white-space:nowrap;}
+
+.reihe-sep{border:none;border-top:1px solid var(--border);margin:5px 0 4px;}
+.reihe-lbl{font-size:0.62rem;letter-spacing:1.5px;text-transform:uppercase;
+  margin-bottom:3px;cursor:pointer;display:inline-block;border-bottom:1px dotted transparent;}
+.reihe-lbl:hover{border-bottom-color:currentColor;}
+.reihe-lbl[contenteditable="true"]{outline:none;border-bottom-color:currentColor;}
+.r1-col{color:var(--blue);}
+.r2-col{color:var(--orange);}
+
+.btn-bar{display:flex;gap:6px;margin:0 8px 12px;flex-wrap:wrap;}
+.btn{padding:8px 12px;background:transparent;border:1px solid var(--border);border-radius:6px;
+  color:var(--muted);font-family:'Barlow Condensed',sans-serif;font-size:0.85rem;
+  letter-spacing:1px;text-transform:uppercase;cursor:pointer;transition:all 0.2s;flex:1;}
+.btn:hover{opacity:0.8;}
+.btn-add{border-color:var(--green);color:var(--green);font-size:1rem;}
+.btn-print{border-color:var(--blue);color:var(--blue);}
+.btn-copy{border-color:var(--purple);color:var(--purple);}
+.btn-reset{border-color:#444;color:#555;}
+.btn-reset:hover{border-color:var(--orange);color:var(--orange);}
+
+.print-val{display:none;font-family:'Share Tech Mono',monospace;font-size:0.95rem;color:#006040;padding:3px 5px;border:1px solid #aaa;border-radius:4px;min-width:30px;background:#fff;}
+.global-bar .print-val{font-size:1.15rem;color:#b07000;border:none;padding:0;}
+.meta-item .print-val{font-size:0.9rem;color:#111;border:none;padding:0;}
+
+@media print {
+  :root{--bg:#fff;--panel:#fff;--border:#ccc;--accent:#b07000;--orange:#b03000;
+    --green:#006040;--blue:#1a4fbf;--purple:#5a2fbf;--text:#111;--muted:#444;}
+  body{background:#fff!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .btn-bar{display:none!important;}
+  .mp-row{break-inside:avoid;page-break-inside:avoid;border-color:#ccc!important;
+    display:flex!important;width:100%!important;}
+  .mp-fields{display:block!important;width:52%!important;border-right-color:#ccc!important;}
+  .mp-canvas-wrap{display:block!important;width:48%!important;}
+  /* Input verstecken, print-span anzeigen */
+  .field input{display:none!important;}
+  .print-val{display:inline!important;}
+  .field label{color:#444!important;}
+  .reihe-lbl{color:inherit!important;}
+  .global-bar{background:#fff!important;border-color:#ccc!important;}
+  .global-bar input{display:none!important;}
+  .global-bar .print-val{display:inline!important;}
+  .legend-bar{border-bottom-color:#ccc!important;}
+  .legend-bar .leg-item{color:#444!important;}
+  canvas{background:#fff!important;}
+  .footer{color:#888!important;}
+  header{border-bottom-color:#b07000!important;}
+  .meta-item input{display:none!important;}
+  .meta-item .print-val{display:inline!important;color:#111!important;}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>⛏ <span id="title-main" title="Umbenennen">Bohrprotokoll</span></h1>
+  <div class="meta-row">
+    <div class="meta-item">
+      <span>Ort/Abschnitt</span>
+      <input id="meta-ort" type="text" placeholder="z.B. IV. H-I/3-4" oninput="syncAllPV()">
+      <span class="print-val meta-item" id="pv-meta-ort">–</span>
+    </div>
+    <div class="meta-item">
+      <span>Datum</span>
+      <input id="meta-datum" type="text" placeholder="TT.MM.JJJJ" style="width:100px;" oninput="syncAllPV()">
+      <span class="print-val meta-item" id="pv-meta-datum">–</span>
+    </div>
+    <div class="meta-item">
+      <span>Bohrtrupp</span>
+      <input id="meta-trupp" type="text" placeholder="Name" style="width:90px;" oninput="syncAllPV()">
+      <span class="print-val meta-item" id="pv-meta-trupp">–</span>
+    </div>
+  </div>
+  <p style="display:none">Feldnamen anklicken zum Umbenennen</p>
+</header>
+
+<div class="legend-bar">
+  <div class="leg-item"><div class="leg-dot" style="background:#f0a500"></div>Neigungsmesser</div>
+  <div class="leg-item"><div class="leg-dot" style="background:#388bfd"></div>1.Reihe</div>
+  <div class="leg-item"><div class="leg-dot" style="background:#e05c1a"></div>2.Reihe</div>
+  <div class="leg-item"><div class="leg-dot" style="background:#3ecf8e"></div>Horizontalbohrung</div>
+  <div class="leg-item"><div class="leg-dot" style="background:#bc8cff"></div>Rückmaß</div>
+</div>
+
+<div class="global-bar">
+  <label>Wandhöhe (senkrecht)</label>
+  <input type="number" id="g-hoehe" placeholder="–" step="0.5" min="0"
+    oninput="berechneAlle();syncAllPV()">
+  <span class="print-val" id="pv-hoehe">–</span>
+  <span class="unit">m</span>
+</div>
+
+<div id="mp-container"></div>
+
+<div class="btn-bar">
+  <button class="btn btn-add" onclick="addMP()">＋ Messpunkt</button>
+  <button class="btn btn-reset" onclick="reset()">↺ Reset</button>
+  <button class="btn btn-print" onclick="drucken()">🖨 Drucken / PDF</button>
+</div>
+
+<div class="footer">
+  © 2026 Sándor Makkai · Bohrprotokoll · Alle Rechte vorbehalten
+</div>
+
+<script>
+// ── Konstanten ──────────────────────────────────────────────────────────────
+const toRad = d => d * Math.PI / 180;
+const toDeg = r => r * 180 / Math.PI;
+const H_HORIZ = 1.0;
+const UEBERSTAND = 0.5;
+
+let _mpIdx = 0;       // nächster Index
+let _printing = false;
+window._erg = {};
+
+// ── Hilfsfunktionen ─────────────────────────────────────────────────────────
+function gv(id) {
+  const el = document.getElementById(id);
+  if (!el) return null;
+  const n = parseFloat(el.value);
+  return (!isNaN(n) && n > 0) ? n : null;
+}
+
+function makeEditable(el) {
+  if (!el || el._editable) return;
+  el._editable = true;
+  el.title = 'Doppelklick zum Umbenennen';
+  el.addEventListener('dblclick', e => {
+    e.stopPropagation();
+    el.contentEditable = 'true';
+    el.focus();
+    const r = document.createRange();
+    r.selectNodeContents(el);
+    window.getSelection().removeAllRanges();
+    window.getSelection().addRange(r);
+  });
+  el.addEventListener('blur', () => { el.contentEditable = 'false'; });
+  el.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); el.blur(); } });
+}
+
+// ── MP erstellen ────────────────────────────────────────────────────────────
+function F(i, fId, lbl, unit, isAuto) {
+  const cls = isAuto ? 'auto' : '';
+  const pid = `pv${i}_${fId}`;
+  return `<div class="field">
+    <label id="lbl${i}_${fId}" title="Umbenennen">${lbl}</label>
+    <div class="uw">
+      <input type="number" id="f${i}_${fId}" step="0.01" placeholder="–" class="${cls}"
+        oninput="onFeld(${i},'${fId}',this);syncPV('f${i}_${fId}','${pid}','${unit}')">
+      <span class="print-val" id="${pid}">–</span>
+      <span class="unit">${unit}</span>
+    </div>
+  </div>`;
+}
+
+function syncPV(inputId, pvId, unit) {
+  const el = document.getElementById(inputId);
+  const pv = document.getElementById(pvId);
+  if (!el || !pv) return;
+  pv.textContent = el.value ? el.value + ' ' + unit : '–';
+}
+
+function syncAllPV() {
+  // Globale Wandhöhe
+  const gh = document.getElementById('g-hoehe');
+  const gpv = document.getElementById('pv-hoehe');
+  if (gh && gpv) gpv.textContent = gh.value ? gh.value + ' m' : '–';
+  // Meta-Felder
+  ['ort','datum','trupp'].forEach(k => {
+    const el = document.getElementById(`meta-${k}`);
+    const pv = document.getElementById(`pv-meta-${k}`);
+    if (el && pv) pv.textContent = el.value || '–';
+  });
+  // MP-Felder
+  document.querySelectorAll('.mp-row').forEach(row => {
+    const i = parseInt(row.id.replace('mp-row-',''));
+    ['neigun','rueck','r1sich','r2sich','r2bw','r1bl','r2bl','r2hb'].forEach(f => {
+      const el = document.getElementById(`f${i}_${f}`);
+      const pv = document.getElementById(`pv${i}_${f}`);
+      if (el && pv) {
+        const unit = el.closest('.uw')?.querySelector('.unit')?.textContent || '';
+        pv.textContent = el.value ? el.value + ' ' + unit : '–';
+      }
+    });
+  });
+}
+
+function addMP() {
+  const i = _mpIdx++;
+  const cont = document.getElementById('mp-container');
+
+  const wrap = document.createElement('div');
+  wrap.id = `mp-row-${i}`;
+  wrap.className = 'mp-row';
+  wrap.innerHTML = `
+    <div class="mp-fields">
+      <div class="mp-header">
+        <span class="mp-num">MP ${i+1}</span>
+        <button class="btn-del" onclick="delMP(${i})">✕</button>
+      </div>
+      <div class="row">
+        ${F(i,'neigun','Neigungswinkel (v.Waagerechte)','°',false)}
+        ${F(i,'rueck','Rückmaß (MP→Wandfuß-Lot)','m',false)}
+      </div>
+      <div class="row">
+        <div class="field" style="max-width:100px;flex:0 0 auto;">
+          <label id="lbl${i}_sich" title="Umbenennen">Vorgabe</label>
+          <div style="font-size:0.55rem;color:var(--muted);margin-top:2px;">↕</div>
+        </div>
+        <div class="field" style="flex:1;">
+          <span class="reihe-lbl r1-col" id="lbl${i}_r1" title="Umbenennen">1. Reihe</span>
+          <div class="uw">
+            <input type="number" id="f${i}_r1sich" step="0.01" placeholder="–" oninput="onFeld(${i},'r1sich',this);syncAllPV()">
+            <span class="print-val" id="pv${i}_r1sich">–</span>
+            <span class="unit">m</span>
+          </div>
+        </div>
+        <div class="field" style="flex:1;">
+          <span class="reihe-lbl r2-col" id="lbl${i}_r2" title="Umbenennen">2. Reihe</span>
+          <div class="uw">
+            <input type="number" id="f${i}_r2sich" step="0.01" placeholder="–" oninput="onFeld(${i},'r2sich',this);syncAllPV()">
+            <span class="print-val" id="pv${i}_r2sich">–</span>
+            <span class="unit">m</span>
+          </div>
+        </div>
+      </div>
+      <hr class="reihe-sep">
+      <div class="row">
+        ${F(i,'r2bw','Bohrwinkel','°',false)}
+        ${F(i,'r1bl','1.R Bohrlänge','m',false)}
+        ${F(i,'r2bl','2.R Bohrlänge','m',true)}
+        ${F(i,'r2hb','Horizontalbohrung','m',true)}
+      </div>
+    </div>
+    <div class="mp-canvas-wrap">
+      <canvas id="cvs-${i}" width="1200" height="720"></canvas>
+    </div>`;
+
+  cont.appendChild(wrap);
+
+  // Labels editierbar (doppelklick)
+  wrap.querySelectorAll('[title="Umbenennen"]').forEach(makeEditable);
+  // Vorgabe extra
+  const sichLbl = document.getElementById(`lbl${i}_sich`);
+  if (sichLbl) makeEditable(sichLbl);
+
+  // Platzhalter zeichnen
+  platzhalter(i);
+
+  // Smooth scroll
+  wrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function delMP(i) {
+  const el = document.getElementById(`mp-row-${i}`);
+  if (el) el.remove();
+  delete window._erg[i];
+}
+
+// ── Berechnung ──────────────────────────────────────────────────────────────
+function onFeld(i, fId, input) {
+  // Auto-Felder: wenn Benutzer tippt, auto-Modus aufheben
+  if (fId === 'r2bl' || fId === 'r2hb') {
+    if (input.value !== '') input.classList.remove('auto');
+    else input.classList.add('auto');
+  }
+  // Bohrwinkel sync → beide Reihen gleich
+  berechneAlle();
+}
+
+function berechneAlle() {
+  const H = gv('g-hoehe');
+  // Alle vorhandenen MPs berechnen
+  document.querySelectorAll('.mp-row').forEach(row => {
+    const i = parseInt(row.id.replace('mp-row-', ''));
+    const d = berechneMP(i, H);
+    window._erg[i] = d;
+    zeichne(i, d);
+  });
+  syncAllPV();
+}
+
+function berechneMP(i, H) {
+  const mw    = gv(`f${i}_neigun`);
+  const rm    = gv(`f${i}_rueck`);
+  const r1sich = gv(`f${i}_r1sich`);
+  const r2sich = gv(`f${i}_r2sich`);
+  const r2bw  = gv(`f${i}_r2bw`);
+  const r1bl  = gv(`f${i}_r1bl`);
+
+  const r1bw = r2bw; // gleicher Winkel
+
+  if (!H || !mw) return { valid: false, mw, rm, r1sich, r2sich, r1bw, r1bl, r2bw, H };
+
+  const mw_rad = toRad(mw);
+  const wok_x = H / Math.tan(mw_rad); // Wandoberkante X vom Messpunkt
+
+  // Wandfuß
+  let wf_x = null, wanddelta = null, wandwinkel = null;
+  if (rm && H > 1) {
+    wf_x = (rm * H - wok_x) / (H - 1);
+    wanddelta = wok_x - wf_x;
+    wandwinkel = toDeg(Math.atan(H / Math.abs(wanddelta)));
+  }
+
+  // Startpunkte oben
+  const r1_te_x = (wok_x && r1sich) ? wok_x + r1sich : null;
+  const r2_te_x = (wok_x && r2sich) ? wok_x + r2sich : null;
+
+  // 2. Reihe automatisch
+  let r2bl = null, r2hb = null, treff_x = null;
+  if (r2_te_x && r2bw) {
+    const bw_rad = toRad(r2bw);
+    const t_met = (H - H_HORIZ) / Math.sin(bw_rad);
+    treff_x = r2_te_x - t_met * Math.cos(bw_rad);
+    const treff_ab_rm = rm ? (treff_x - rm) : null;
+    r2hb = treff_ab_rm !== null ? Math.max(0, treff_ab_rm + UEBERSTAND) : null;
+    const t_stop = (H - H_HORIZ - 1.0) / Math.sin(bw_rad);
+    r2bl = t_stop > 0 ? t_stop : null;
+
+    // Auto-Felder setzen
+    const blEl = document.getElementById(`f${i}_r2bl`);
+    const hbEl = document.getElementById(`f${i}_r2hb`);
+    if (blEl && blEl.classList.contains('auto')) { blEl.value = r2bl ? r2bl.toFixed(2) : ''; }
+    if (hbEl && hbEl.classList.contains('auto')) { hbEl.value = r2hb ? r2hb.toFixed(2) : ''; }
+  }
+
+  return {
+    valid: true, i, mw, rm, r1sich, r2sich, H, mw_rad,
+    wok_x, wf_x, wanddelta, wandwinkel,
+    r1bw, r1bl, r1_te_x,
+    r2bw, r2bl, r2hb, r2_te_x, treff_x
+  };
+}
+
+// ── Zeichnung ────────────────────────────────────────────────────────────────
+function C() {
+  return _printing ? {
+    bg:'#fff', rock:'#e8edf5', sohle:'#333', wand:'#334466',
+    mp:'#b07000', neigun:'#b07000', rueck:'#5a2fbf',
+    r1:'#1a5fbf', r2:'#b03000', horiz:'#006040', muted:'#555'
+  } : {
+    bg:'#0a0d14', rock:'#1a2035', sohle:'#4a5568', wand:'#8899bb',
+    mp:'#f0a500', neigun:'#f0a500', rueck:'#bc8cff',
+    r1:'#388bfd', r2:'#e05c1a', horiz:'#3ecf8e', muted:'#7d8590'
+  };
+}
+
+function zeichne(i, d) {
+  const canvas = document.getElementById(`cvs-${i}`);
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const CW = canvas.width, CH = canvas.height;
+  ctx.clearRect(0, 0, CW, CH);
+  const c = C();
+  ctx.fillStyle = c.bg;
+  ctx.fillRect(0, 0, CW, CH);
+
+  if (!d || !d.valid || !d.H) {
+    ctx.fillStyle = c.rock;
+    ctx.fillRect(10, 10, CW-20, CH-20);
+    ctx.fillStyle = c.muted; ctx.font = '11px Barlow Condensed';
+    ctx.textAlign = 'center';
+    ctx.fillText('Daten eingeben', CW/2, CH/2);
+    ctx.textAlign = 'left';
+    return;
+  }
+
+  const { mw, rm, r1sich, r2sich, H, mw_rad,
+          wok_x, wf_x, wanddelta, wandwinkel,
+          r1bw, r1bl, r1_te_x,
+          r2bw, r2bl, r2hb, r2_te_x, treff_x } = d;
+
+  const ML=50, MR=20, MT=45, MB=45;
+  const S = CW / 500; // skálafaktor az eredeti 500px-hez képest (most 1200/500=2.4)
+  const maxTE = Math.max(r1_te_x||0, r2_te_x||0, wok_x||0) + 2;
+  const leftEdge = rm ? -(rm*0.12) : -0.5;
+  const sc = Math.min((CW-ML*S-MR*S)/(maxTE-leftEdge), (CH-MT*S-MB*S)/(H+1.5)) * 0.9;
+  const OX = ML*S + Math.abs(leftEdge)*sc;
+  const OY = CH - MB*S;
+  const px = x => OX + x*sc;
+  const py = y => OY - y*sc;
+
+  // Felskörper
+  if (wf_x !== null) {
+    ctx.fillStyle = c.rock;
+    ctx.beginPath();
+    ctx.moveTo(px(wok_x), py(H)); ctx.lineTo(px(maxTE+1), py(H));
+    ctx.lineTo(px(maxTE+1), py(0)); ctx.lineTo(px(wf_x), py(0));
+    ctx.closePath(); ctx.fill();
+  }
+
+  // Sohle
+  ctx.beginPath(); ctx.moveTo(px(leftEdge-0.3), py(0)); ctx.lineTo(px(maxTE+1), py(0));
+  ctx.strokeStyle=c.sohle; ctx.lineWidth=2*S; ctx.stroke();
+  ctx.fillStyle=c.sohle; ctx.font=`${10*S}px Barlow Condensed`;
+  ctx.fillText('Sohle', px(leftEdge-0.2), py(0)+14*S);
+
+  // Oberkante
+  if (wok_x) {
+    ctx.beginPath(); ctx.moveTo(px(wok_x), py(H)); ctx.lineTo(px(maxTE+1), py(H));
+    ctx.strokeStyle=c.sohle; ctx.lineWidth=1.5*S; ctx.stroke();
+  }
+
+  // Wand
+  if (wf_x !== null) {
+    ctx.beginPath(); ctx.moveTo(px(wok_x), py(H)); ctx.lineTo(px(wf_x), py(0));
+    ctx.strokeStyle=c.wand; ctx.lineWidth=3.5*S; ctx.stroke();
+    ctx.fillStyle=c.wand;
+    ctx.beginPath(); ctx.arc(px(wf_x), py(0), 4*S, 0, Math.PI*2); ctx.fill();
+    ctx.font=`${10*S}px Barlow Condensed`;
+    ctx.fillText(`Wand ${wandwinkel!==null?wandwinkel.toFixed(1)+'°':''}`, px(wf_x)+5*S, py(0)+14*S);
+    if (rm) {
+      const p1x = wf_x + wanddelta/H;
+      ctx.fillStyle=c.horiz;
+      ctx.beginPath(); ctx.arc(px(p1x), py(1), 3*S, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(px(p1x), py(1)); ctx.lineTo(px(p1x), py(0));
+      ctx.strokeStyle=c.horiz+'66'; ctx.lineWidth=1*S;
+      ctx.setLineDash([3*S,3*S]); ctx.stroke(); ctx.setLineDash([]);
+    }
+  }
+
+  // Messpunkt
+  ctx.fillStyle=c.mp;
+  ctx.beginPath(); ctx.arc(px(0), py(0), 6*S, 0, Math.PI*2); ctx.fill();
+  ctx.font=`bold ${11*S}px Barlow Condensed`; ctx.fillStyle=c.mp;
+  ctx.fillText('MP', px(0)-6*S, py(0)-9*S);
+
+  // Neigungsmesser
+  if (mw && wok_x) {
+    ctx.beginPath(); ctx.moveTo(px(0), py(0)); ctx.lineTo(px(wok_x), py(H));
+    ctx.strokeStyle=c.neigun; ctx.lineWidth=1.5*S;
+    ctx.setLineDash([6*S,3*S]); ctx.stroke(); ctx.setLineDash([]);
+    ctx.beginPath(); ctx.arc(px(0), py(0), 42*S, -mw_rad, 0);
+    ctx.strokeStyle=c.neigun; ctx.lineWidth=1.2*S;
+    ctx.setLineDash([2*S,3*S]); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle=c.neigun; ctx.font=`bold ${11*S}px Barlow Condensed`;
+    ctx.fillText(`${mw}°`, px(0)+45*S, py(0)-11*S);
+  }
+
+  // Rückmaß
+  if (rm) {
+    const arY = py(0)+26*S;
+    ctx.beginPath(); ctx.moveTo(px(0), arY); ctx.lineTo(px(rm), arY);
+    ctx.strokeStyle=c.rueck; ctx.lineWidth=1.5*S; ctx.stroke();
+    pf(ctx, px(0), arY, 1, c.rueck, S); pf(ctx, px(rm), arY, -1, c.rueck, S);
+    ctx.fillStyle=c.rueck; ctx.font=`bold ${11*S}px Barlow Condensed`;
+    ctx.fillText(`${rm}m`, (px(0)+px(rm))/2-10*S, arY+14*S);
+  }
+
+  // Wandoberkante
+  if (wok_x) {
+    ctx.fillStyle=c.muted;
+    ctx.beginPath(); ctx.arc(px(wok_x), py(H), 4*S, 0, Math.PI*2); ctx.fill();
+  }
+
+  // Vorgabe 1. Reihe
+  if (wok_x && r1sich && r1_te_x) {
+    const ay = py(H)-24*S;
+    ctx.beginPath(); ctx.moveTo(px(wok_x), ay); ctx.lineTo(px(r1_te_x), ay);
+    ctx.strokeStyle=c.r1; ctx.lineWidth=1.5*S; ctx.stroke();
+    pf(ctx, px(wok_x), ay, 1, c.r1, S); pf(ctx, px(r1_te_x), ay, -1, c.r1, S);
+    ctx.fillStyle=c.r1; ctx.font=`bold ${10*S}px Barlow Condensed`;
+    ctx.fillText(`${r1sich}m`, (px(wok_x)+px(r1_te_x))/2-8*S, ay-5*S);
+    ctx.fillStyle=c.r1;
+    ctx.beginPath(); ctx.arc(px(r1_te_x), py(H), 6*S, 0, Math.PI*2); ctx.fill();
+  }
+
+  // Vorgabe 2. Reihe
+  if (wok_x && r2sich && r2_te_x) {
+    const ay = py(H)-38*S;
+    ctx.beginPath(); ctx.moveTo(px(wok_x), ay); ctx.lineTo(px(r2_te_x), ay);
+    ctx.strokeStyle=c.r2; ctx.lineWidth=1.5*S; ctx.stroke();
+    pf(ctx, px(wok_x), ay, 1, c.r2, S); pf(ctx, px(r2_te_x), ay, -1, c.r2, S);
+    ctx.fillStyle=c.r2; ctx.font=`bold ${10*S}px Barlow Condensed`;
+    ctx.fillText(`${r2sich}m`, (px(wok_x)+px(r2_te_x))/2-8*S, ay-5*S);
+    ctx.fillStyle=c.r2;
+    ctx.beginPath(); ctx.arc(px(r2_te_x), py(H), 6*S, 0, Math.PI*2); ctx.fill();
+  }
+
+ // 1. Reihe Bohrung
+  if (r1bw && r1bl && r1_te_x) {
+    const bw = toRad(r1bw);
+    const ex = r1_te_x - r1bl*Math.cos(bw), ey = H - r1bl*Math.sin(bw);
+    ctx.beginPath(); ctx.moveTo(px(r1_te_x), py(H)); ctx.lineTo(px(ex), py(ey));
+    ctx.strokeStyle=c.r1; ctx.lineWidth=3.5*S; ctx.lineCap='round'; ctx.stroke(); ctx.lineCap='butt';
+    ctx.beginPath(); ctx.arc(px(r1_te_x), py(H), 32*S, Math.PI, Math.PI+bw);
+    ctx.strokeStyle=c.r1; ctx.lineWidth=1.2*S;
+    ctx.setLineDash([2*S,3*S]); ctx.stroke(); ctx.setLineDash([]);
+    const ang1 = Math.atan2(py(ey)-py(H), px(ex)-px(r1_te_x));
+    ctx.fillStyle=c.r1; ctx.font=`bold ${11*S}px Barlow Condensed`;
+    ctx.save();
+    ctx.save();
+  ctx.translate((px(r1_te_x)+px(ex))/2, (py(H)+py(ey))/2);
+  ctx.rotate(ang1 + Math.PI);
+  ctx.fillText(`${r1bl}m / ${r1bw}°`, -15*S, -6*S);
+  ctx.restore();
+    ctx.restore();
+  }
+
+  // 2. Reihe Bohrung
+  if (r2bw && r2bl && r2_te_x) {
+    const bw = toRad(r2bw);
+    const ex = r2_te_x - r2bl*Math.cos(bw), ey = H - r2bl*Math.sin(bw);
+    ctx.beginPath(); ctx.moveTo(px(r2_te_x), py(H)); ctx.lineTo(px(ex), py(ey));
+    ctx.strokeStyle=c.r2; ctx.lineWidth=4.5*S; ctx.lineCap='round'; ctx.stroke(); ctx.lineCap='butt';
+    ctx.beginPath(); ctx.arc(px(r2_te_x), py(H), 24*S, Math.PI, Math.PI+bw);
+    ctx.strokeStyle=c.r2; ctx.lineWidth=1.2*S;
+    ctx.setLineDash([2*S,3*S]); ctx.stroke(); ctx.setLineDash([]);
+    const ang2 = Math.atan2(py(ey)-py(H), px(ex)-px(r2_te_x));
+    ctx.fillStyle=c.r2; ctx.font=`bold ${11*S}px Barlow Condensed`;
+    ctx.save();
+    ctx.translate((px(r2_te_x)+px(ex))/2, (py(H)+py(ey))/2);
+    ctx.rotate(ang2 + Math.PI);
+    ctx.fillText(`${r2bl.toFixed(1)}m / ${r2bw}°`, -18*S, -7*S);
+    ctx.restore();
+    if (treff_x !== null) {
+      ctx.beginPath(); ctx.moveTo(px(ex), py(ey)); ctx.lineTo(px(treff_x), py(H_HORIZ));
+      ctx.strokeStyle=c.r2; ctx.lineWidth=1.5*S;
+      ctx.setLineDash([4*S,3*S]); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle=c.r2;
+      ctx.beginPath(); ctx.arc(px(treff_x), py(H_HORIZ), 4*S, 0, Math.PI*2); ctx.fill();
+      const jx = px(ex)+12*S;
+      ctx.beginPath(); ctx.moveTo(jx, py(ey)); ctx.lineTo(jx, py(H_HORIZ));
+      ctx.strokeStyle=c.r2+'66'; ctx.lineWidth=1*S; ctx.stroke();
+      ctx.fillStyle=c.r2; ctx.font=`${10*S}px Barlow Condensed`;
+      ctx.fillText('1m', jx+2*S, (py(ey)+py(H_HORIZ))/2+4*S);
+    }
+  }
+
+  // Horizontalbohrung
+  if (rm && r2hb) {
+    const hbS = rm, hbE = rm + r2hb;
+    ctx.beginPath(); ctx.moveTo(px(hbS), py(H_HORIZ)); ctx.lineTo(px(hbE), py(H_HORIZ));
+    ctx.strokeStyle=c.horiz; ctx.lineWidth=4*S; ctx.lineCap='round'; ctx.stroke(); ctx.lineCap='butt';
+    ctx.fillStyle=c.horiz; ctx.font=`bold ${11*S}px Barlow Condensed`;
+    ctx.fillText(`${r2hb.toFixed(1)}m`, (px(hbS)+px(hbE))/2-10*S, py(H_HORIZ)-8*S);
+    ctx.font=`${9*S}px Barlow Condensed`;
+    ctx.fillText(`${H_HORIZ}m ü.Sohle`, px(hbS)+2*S, py(0)-1*S);
+    if (treff_x !== null) {
+      const au = py(H_HORIZ)+28*S;
+      ctx.beginPath(); ctx.moveTo(px(treff_x), au); ctx.lineTo(px(hbE), au);
+      ctx.strokeStyle=c.horiz; ctx.lineWidth=1*S; ctx.stroke();
+      ctx.fillStyle=c.horiz; ctx.font=`${10*S}px Barlow Condensed`;
+      ctx.fillText(`${UEBERSTAND}m`, (px(treff_x)+px(hbE))/2-10*S, au+12*S);
+    }
+  }
+
+  // Wandhöhe Pfeil
+  const hx = px(maxTE+0.8);
+  ctx.beginPath(); ctx.moveTo(hx, py(0)); ctx.lineTo(hx, py(H));
+  ctx.strokeStyle=c.muted; ctx.lineWidth=1.2*S; ctx.stroke();
+  ctx.fillStyle=c.muted;
+  ctx.beginPath(); ctx.moveTo(hx,py(H)); ctx.lineTo(hx-3*S,py(H)+6*S); ctx.lineTo(hx+3*S,py(H)+6*S); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(hx,py(0)); ctx.lineTo(hx-3*S,py(0)-6*S); ctx.lineTo(hx+3*S,py(0)-6*S); ctx.fill();
+  ctx.save(); ctx.translate(hx+13*S,(py(0)+py(H))/2+20*S); ctx.rotate(-Math.PI/2);
+  ctx.font=`bold ${11*S}px Barlow Condensed`; ctx.fillStyle=c.muted;
+  ctx.fillText(`${H}m`, 0, 0); ctx.restore();
+}
+
+function pf(ctx, x, y, dir, color) {
+  ctx.fillStyle=color;
+  ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x-dir*7,y-3); ctx.lineTo(x-dir*7,y+3); ctx.fill();
+}
+
+function platzhalter(i) {
+  const canvas = document.getElementById(`cvs-${i}`);
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const c = C();
+  ctx.fillStyle=c.bg; ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.fillStyle=c.rock; ctx.fillRect(10,10,canvas.width-20,canvas.height-20);
+  ctx.fillStyle=c.muted; ctx.font='11px Barlow Condensed';
+  ctx.textAlign='center'; ctx.fillText('Daten eingeben', canvas.width/2, canvas.height/2);
+  ctx.textAlign='left';
+}
+
+// ── Print ────────────────────────────────────────────────────────────────────
+function redrawAll() {
+  document.querySelectorAll('.mp-row').forEach(row => {
+    const i = parseInt(row.id.replace('mp-row-',''));
+    const d = window._erg[i];
+    if (d) zeichne(i, d); else platzhalter(i);
+  });
+}
+
+function canvasZuImg() {
+  document.querySelectorAll('.mp-canvas-wrap').forEach(wrap => {
+    if (wrap.querySelector('.print-img')) return; // schon vorhanden
+    const canvas = wrap.querySelector('canvas');
+    if (!canvas) return;
+    const img = document.createElement('img');
+    img.src = canvas.toDataURL('image/png');
+    img.style.cssText = 'width:100%;display:block;';
+    img.className = 'print-img';
+    canvas.style.display = 'none';
+    wrap.appendChild(img);
+  });
+}
+
+function imgZuCanvas() {
+  document.querySelectorAll('.print-img').forEach(img => img.remove());
+  document.querySelectorAll('.mp-canvas-wrap canvas').forEach(c => c.style.display = '');
+}
+
+window.addEventListener('beforeprint', () => {
+  _printing = true;
+  syncAllPV();
+  redrawAll();
+  canvasZuImg();
+});
+
+window.addEventListener('afterprint', () => {
+  _printing = false;
+  imgZuCanvas();
+  redrawAll();
+});
+
+function drucken() {
+  _printing = true;
+  syncAllPV();
+  redrawAll();
+  canvasZuImg();
+  setTimeout(() => { window.print(); }, 200);
+}
+
+// ── Reset ────────────────────────────────────────────────────────────────────
+function reset() {
+  document.getElementById('g-hoehe').value = '';
+  document.querySelectorAll('.mp-row').forEach(row => {
+    const i = parseInt(row.id.replace('mp-row-',''));
+    ['neigun','rueck','r1sich','r2sich','r2bw','r1bl','r2bl','r2hb'].forEach(f => {
+      const el = document.getElementById(`f${i}_${f}`);
+      if (el) { el.value=''; if(f==='r2bl'||f==='r2hb') el.classList.add('auto'); }
+    });
+    platzhalter(i);
+  });
+  window._erg={};
+}
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+makeEditable(document.getElementById('title-main'));
+addMP(); // erstes MP automatisch
+</script>
+</body>
+</html>
